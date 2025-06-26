@@ -22,3 +22,19 @@ This project provides web-based access to a tmux session running on the user's l
 - Port 7681 is standard for ttyd but configurable
 - Authentication prevents public access to terminal
 - Tmux session persists even if ttyd restarts
+
+## Enhanced Mobile Features (New)
+- **Control Panel**: Collapsible sidebar with touch-friendly buttons for:
+  - Tmux window navigation (previous, next, new window)
+  - Common keyboard shortcuts (Ctrl+C, Tab, Arrow keys, etc.)
+  - Quick commands (ls, pwd, clear)
+- **Mobile Optimizations**:
+  - Swipe right gesture to show control panel
+  - Auto-hide panel after button press on mobile
+  - Larger touch targets for better usability
+- **Cross-platform Keyboard Fixes**:
+  - Command key properly handled on macOS
+  - Better backspace and arrow key handling
+  - Clipboard integration for paste operations
+- **URL-based Navigation**: Access specific tmux windows via URL paths
+  - Example: vps.neelnanda.io/Code → opens Code tmux window

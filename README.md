@@ -192,3 +192,61 @@ Edit `/Users/neelnanda/Code/VPS/web-terminal/start-ttyd.sh` to:
 - Use a Bluetooth keyboard for better typing
 - Pinch to zoom for better visibility
 - Consider using a terminal app instead for better experience
+
+## Enhanced Mobile Interface (NEW!)
+
+The web terminal now includes a mobile-optimized control panel for easier use on touch devices.
+
+### Control Panel Features
+
+**Access Methods:**
+- Tap the **☰** button in the top-left corner
+- Swipe right from the left edge (mobile only)
+- Panel auto-hides after button press on mobile
+
+### Available Controls
+
+**Navigation Buttons:**
+- **↑ ↓ ← →** - Arrow keys for cursor movement
+- **Home/End** - Jump to line start/end
+- **Tab** - Tab completion
+- **Esc** - Escape key
+- **Enter** - Enter/Return
+- **⌫ Back** - Backspace
+
+**Control Keys:**
+- **Ctrl+C** - Interrupt/cancel current process
+- **Ctrl+D** - Exit/logout
+- **Ctrl+Z** - Suspend current process
+- **Ctrl+L** - Clear screen
+
+**Tmux Controls:**
+- **Next Win** - Next tmux window (Ctrl+B, N)
+- **Prev Win** - Previous window (Ctrl+B, P)  
+- **New Win** - Create new window (Ctrl+B, C)
+- **Detach** - Detach session (Ctrl+B, D)
+- **Scroll Mode** - Enter scroll mode (Ctrl+B, [)
+- **Kill Pane** - Close pane (Ctrl+B, X)
+
+**Quick Commands:**
+- **List Files** - Runs `ls -la`
+- **Current Dir** - Runs `pwd`
+- **Clear** - Clears terminal
+- **List Sessions** - Shows tmux sessions
+
+### Cross-Platform Keyboard Fixes
+
+**macOS Command Key Support:**
+- **Cmd+←** - Jump to line start (Home)
+- **Cmd+→** - Jump to line end (End)
+- **Cmd+Backspace** - Delete to line start
+- **Cmd+C/V** - Copy/Paste support
+
+### URL-Based Window Navigation
+
+Access specific tmux windows directly via URL:
+- `http://143.110.172.229/Code` - Opens Code window
+- `http://143.110.172.229/Projects` - Opens Projects window
+- `http://143.110.172.229/Documents` - Opens Documents window
+
+This allows opening multiple browser tabs for different tmux windows.
