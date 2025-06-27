@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Mobile Terminal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        /* Multiple button bars */
+        .button-container {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 50vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .button-bar {
+            background: rgba(30, 30, 30, 0.95);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        .bar-label {
+            font-size: 11px;
+            color: #888;
+            padding: 4px 8px;
+            white-space: nowrap;
+            align-self: center;
+            min-width: 60px;
+        }
+        
+        .btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+        
+        .btn:active {
+            background: #222;
+            transform: scale(0.95);
+        }
+        
+        .btn.special {
+            background: #1a3a52;
+            border-color: #2a5a82;
+        }
+        
+        #terminal-frame {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            display: block;
+        }
+        
+        /* Toggle button for button bars */
+        .toggle-buttons {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1001;
+            background: rgba(51, 51, 51, 0.9);
+            border: 1px solid #666;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .button-container.hidden {
+            display: none;
+        }
+        
+        /* Hidden textarea for clipboard operations */
+        #clipboard-helper {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+        }
+        
+        /* Feedback message */
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            display: none;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        .feedback.show {
+            display: block;
+        }
+        
+        /* Info banner */
+        .info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255, 255, 200, 0.9);
+            color: #333;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1001;
+            text-align: center;
+            display: none;
+        }
+        
+        .info.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="info" class="info">
+        Tap ⌨️ button to show/hide controls
+    </div>
+    
+    <iframe id="terminal-frame" src="/"></iframe>
+    
+    <div id="button-container" class="button-container">
+        <!-- Navigation and Special Keys -->
+        <div class="button-bar">
+            <span class="bar-label">Nav</span>
+            <button class="btn" onclick="sendSpecialKey('Tab')">Tab ↹</button>
+            <button class="btn" onclick="sendSpecialKey('Escape')">Esc</button>
+            <button class="btn" onclick="sendSpecialKey('ArrowUp')">↑</button>
+            <button class="btn" onclick="sendSpecialKey('ArrowDown')">↓</button>
+            <button class="btn" onclick="sendSpecialKey('ArrowLeft')">←</button>
+            <button class="btn" onclick="sendSpecialKey('ArrowRight')">→</button>
+        </div>
+        
+        <!-- Control Keys -->
+        <div class="button-bar">
+            <span class="bar-label">Ctrl</span>
+            <button class="btn special" onclick="sendCtrlKey('c')">Ctrl+C</button>
+            <button class="btn" onclick="sendCtrlKey('d')">Ctrl+D</button>
+            <button class="btn" onclick="sendCtrlKey('z')">Ctrl+Z</button>
+            <button class="btn" onclick="sendCtrlKey('l')">Ctrl+L</button>
+            <button class="btn" onclick="sendCtrlKey('a')">Ctrl+A</button>
+            <button class="btn" onclick="sendCtrlKey('e')">Ctrl+E</button>
+        </div>
+        
+        <!-- Tmux Commands -->
+        <div class="button-bar">
+            <span class="bar-label">Tmux</span>
+            <button class="btn special" onclick="sendTmuxPrefix()">Ctrl+B</button>
+            <button class="btn" onclick="sendTmuxCmd('c')">New Win</button>
+            <button class="btn" onclick="sendTmuxCmd('n')">Next</button>
+            <button class="btn" onclick="sendTmuxCmd('p')">Prev</button>
+            <button class="btn" onclick="sendTmuxCmd('%')">Split →</button>
+            <button class="btn" onclick="sendTmuxCmd('&quot;')">Split ↓</button>
+        </div>
+        
+        <!-- Common Commands -->
+        <div class="button-bar">
+            <span class="bar-label">Copy</span>
+            <button class="btn" onclick="copyCommand('ls -la')">ls -la</button>
+            <button class="btn" onclick="copyCommand('cd ~/Code')">cd Code</button>
+            <button class="btn" onclick="copyCommand('tmux ls')">tmux ls</button>
+            <button class="btn" onclick="copyCommand('git status')">git st</button>
+            <button class="btn" onclick="copyCommand('clear')">clear</button>
+        </div>
+    </div>
+    
+    <button class="toggle-buttons" onclick="toggleButtons()">⌨️</button>
+    
+    <textarea id="clipboard-helper"></textarea>
+    <div id="feedback" class="feedback"></div>
+    
+    <script>
+        let buttonsVisible = true;
+        let lastKeyTime = 0;
+        const KEY_DELAY = 100; // ms between key presses
+        
+        // Toggle button visibility
+        function toggleButtons() {
+            const container = document.getElementById('button-container');
+            buttonsVisible = !buttonsVisible;
+            if (buttonsVisible) {
+                container.classList.remove('hidden');
+                showFeedback('Controls shown');
+            } else {
+                container.classList.add('hidden');
+                showFeedback('Controls hidden');
+            }
+        }
+        
+        // Show feedback message
+        function showFeedback(message, duration = 1500) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = message;
+            feedback.classList.add('show');
+            
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, duration);
+        }
+        
+        // Send special keys by injecting into terminal
+        function sendSpecialKey(key) {
+            // Throttle key presses
+            const now = Date.now();
+            if (now - lastKeyTime < KEY_DELAY) {
+                return;
+            }
+            lastKeyTime = now;
+            
+            try {
+                const iframe = document.getElementById('terminal-frame');
+                const iframeWin = iframe.contentWindow;
+                
+                // Try to find ttyd's input handler
+                const term = iframeWin.term || iframeWin.Terminal;
+                if (term && term.onData) {
+                    // Send key directly to ttyd
+                    let data = '';
+                    switch(key) {
+                        case 'Tab': data = '\t'; break;
+                        case 'Escape': data = '\x1b'; break;
+                        case 'ArrowUp': data = '\x1b[A'; break;
+                        case 'ArrowDown': data = '\x1b[B'; break;
+                        case 'ArrowLeft': data = '\x1b[D'; break;
+                        case 'ArrowRight': data = '\x1b[C'; break;
+                    }
+                    if (data && iframeWin.ws && iframeWin.ws.send) {
+                        iframeWin.ws.send(data);
+                        showFeedback(`Sent ${key}`, 500);
+                    }
+                } else {
+                    // Fallback: dispatch keyboard event
+                    const keyMap = {
+                        'Tab': 9,
+                        'Escape': 27,
+                        'ArrowUp': 38,
+                        'ArrowDown': 40,
+                        'ArrowLeft': 37,
+                        'ArrowRight': 39
+                    };
+                    
+                    const evt = new KeyboardEvent('keydown', {
+                        keyCode: keyMap[key],
+                        which: keyMap[key],
+                        key: key,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    
+                    iframeWin.document.dispatchEvent(evt);
+                    showFeedback(`Key: ${key}`, 500);
+                }
+            } catch (e) {
+                showFeedback('Focus terminal & try again', 1000);
+                console.error('Key send failed:', e);
+            }
+        }
+        
+        // Send Ctrl+key combinations
+        function sendCtrlKey(key) {
+            try {
+                const iframe = document.getElementById('terminal-frame');
+                const iframeWin = iframe.contentWindow;
+                
+                // ASCII control characters
+                const ctrlChar = String.fromCharCode(key.charCodeAt(0) - 96);
+                
+                if (iframeWin.ws && iframeWin.ws.send) {
+                    iframeWin.ws.send(ctrlChar);
+                    showFeedback(`Sent Ctrl+${key.toUpperCase()}`, 500);
+                } else {
+                    // Fallback
+                    const evt = new KeyboardEvent('keydown', {
+                        key: key,
+                        keyCode: key.toUpperCase().charCodeAt(0),
+                        ctrlKey: true,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    iframeWin.document.dispatchEvent(evt);
+                    showFeedback(`Ctrl+${key.toUpperCase()}`, 500);
+                }
+            } catch (e) {
+                showFeedback('Focus terminal & try again', 1000);
+            }
+        }
+        
+        // Send tmux prefix (Ctrl+B)
+        function sendTmuxPrefix() {
+            sendCtrlKey('b');
+            showFeedback('Sent Ctrl+B - press tmux command', 2000);
+        }
+        
+        // Send tmux command (after prefix)
+        function sendTmuxCmd(cmd) {
+            // First send Ctrl+B
+            sendCtrlKey('b');
+            
+            // Then send the command after delay
+            setTimeout(() => {
+                try {
+                    const iframe = document.getElementById('terminal-frame');
+                    const iframeWin = iframe.contentWindow;
+                    
+                    if (iframeWin.ws && iframeWin.ws.send) {
+                        iframeWin.ws.send(cmd);
+                        showFeedback(`Tmux: ${cmd}`, 1000);
+                    }
+                } catch (e) {
+                    console.error('Tmux command failed:', e);
+                }
+            }, 150);
+        }
+        
+        // Copy command to clipboard
+        function copyCommand(text) {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            
+            // Use textarea method for better compatibility
+            const textarea = document.getElementById('clipboard-helper');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '0';
+            textarea.style.top = '0';
+            textarea.style.width = '2em';
+            textarea.style.height = '2em';
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showFeedback(`Copied: ${text}`, 1000);
+                btn.style.background = '#2a5a2a';
+                setTimeout(() => {
+                    btn.style.background = '';
+                }, 500);
+            } catch (err) {
+                // Try modern API as fallback
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showFeedback(`Copied: ${text}`, 1000);
+                    }).catch(() => {
+                        showFeedback('Copy failed - select manually', 2000);
+                    });
+                }
+            }
+            
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+        }
+        
+        // Show info briefly
+        const info = document.getElementById('info');
+        info.classList.add('show');
+        setTimeout(() => {
+            info.classList.remove('show');
+        }, 3000);
+        
+        // Focus terminal on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const iframe = document.getElementById('terminal-frame');
+                iframe.focus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

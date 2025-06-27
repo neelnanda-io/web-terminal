@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Mobile Terminal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            display: flex;
+            position: fixed;
+            width: 100%;
+        }
+        
+        #control-panel {
+            background: #1e1e1e;
+            width: 250px;
+            height: 100vh;
+            height: 100dvh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: transform 0.3s ease;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            padding-bottom: 50px; /* Extra space at bottom */
+        }
+        
+        #control-panel.collapsed {
+            transform: translateX(-250px);
+        }
+        
+        #toggle-panel {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 1001;
+            background: rgba(51, 51, 51, 0.9);
+            border: 1px solid #666;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        #toggle-panel.shifted {
+            left: 260px;
+        }
+        
+        #toggle-panel:active {
+            transform: scale(0.95);
+        }
+        
+        #terminal-frame {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            border: none;
+            display: block;
+        }
+        
+        #terminal-container {
+            flex: 1;
+            height: 100vh;
+            height: 100dvh;
+            transition: margin-left 0.3s ease;
+            position: relative;
+        }
+        
+        #terminal-container.shifted {
+            margin-left: 250px;
+        }
+        
+        .control-section {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .control-section h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 14px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .control-btn:active {
+            background: #1a1a1a;
+            transform: scale(0.95);
+            border-color: #666;
+        }
+        
+        .control-btn.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        /* Zoom controls */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            gap: 10px;
+            background: rgba(30, 30, 30, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        .zoom-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .zoom-btn:active {
+            background: #222;
+            transform: scale(0.9);
+        }
+        
+        .info-text {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        @media (max-width: 768px) {
+            #control-panel {
+                width: 200px;
+            }
+            
+            #terminal-container.shifted {
+                margin-left: 200px;
+            }
+            
+            #toggle-panel.shifted {
+                left: 210px;
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .control-btn {
+                padding: 16px 10px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Hide zoom controls when panel is open on mobile */
+        @media (max-width: 768px) {
+            .panel-open .zoom-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="toggle-panel" class="shifted">☰</button>
+    
+    <div id="control-panel">
+        <div class="control-section">
+            <h3>Terminal Controls</h3>
+            <p class="info-text">
+                Use these buttons to send keyboard shortcuts to the terminal. 
+                The panel auto-hides after each button press.
+            </p>
+        </div>
+        
+        <div class="control-section">
+            <h3>Navigation</h3>
+            <div class="control-grid">
+                <button class="control-btn" onclick="sendKey('ArrowUp')">↑ Up</button>
+                <button class="control-btn" onclick="sendKey('ArrowDown')">↓ Down</button>
+                <button class="control-btn" onclick="sendKey('ArrowLeft')">← Left</button>
+                <button class="control-btn" onclick="sendKey('ArrowRight')">→ Right</button>
+                <button class="control-btn" onclick="sendKey('Home')">Home</button>
+                <button class="control-btn" onclick="sendKey('End')">End</button>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3>Common Keys</h3>
+            <div class="control-grid">
+                <button class="control-btn" onclick="sendKey('Tab')">Tab ↹</button>
+                <button class="control-btn" onclick="sendKey('Escape')">Esc</button>
+                <button class="control-btn" onclick="sendKey('Enter')">Enter ↵</button>
+                <button class="control-btn" onclick="sendKey('Backspace')">⌫ Delete</button>
+                <button class="control-btn full-width" onclick="sendKey(' ')">Space</button>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3>Control Keys</h3>
+            <div class="control-grid">
+                <button class="control-btn" onclick="sendCtrlKey('c')">Ctrl+C</button>
+                <button class="control-btn" onclick="sendCtrlKey('d')">Ctrl+D</button>
+                <button class="control-btn" onclick="sendCtrlKey('z')">Ctrl+Z</button>
+                <button class="control-btn" onclick="sendCtrlKey('l')">Ctrl+L</button>
+                <button class="control-btn" onclick="sendCtrlKey('a')">Ctrl+A</button>
+                <button class="control-btn" onclick="sendCtrlKey('e')">Ctrl+E</button>
+                <button class="control-btn" onclick="sendCtrlKey('k')">Ctrl+K</button>
+                <button class="control-btn" onclick="sendCtrlKey('u')">Ctrl+U</button>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3>Tmux Controls</h3>
+            <div class="control-grid">
+                <button class="control-btn" onclick="sendTmuxCmd('n')">Next Win</button>
+                <button class="control-btn" onclick="sendTmuxCmd('p')">Prev Win</button>
+                <button class="control-btn" onclick="sendTmuxCmd('c')">New Win</button>
+                <button class="control-btn" onclick="sendTmuxCmd('d')">Detach</button>
+                <button class="control-btn" onclick="sendTmuxCmd('[')">Scroll</button>
+                <button class="control-btn" onclick="sendTmuxCmd('x')">Kill Pane</button>
+                <button class="control-btn" onclick="sendTmuxCmd('0')">Win 0</button>
+                <button class="control-btn" onclick="sendTmuxCmd('1')">Win 1</button>
+                <button class="control-btn" onclick="sendTmuxCmd('2')">Win 2</button>
+                <button class="control-btn" onclick="sendTmuxCmd('3')">Win 3</button>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h3>Quick Commands</h3>
+            <div class="control-grid">
+                <button class="control-btn full-width" onclick="typeCommand('ls -la')">List Files</button>
+                <button class="control-btn full-width" onclick="typeCommand('pwd')">Show Directory</button>
+                <button class="control-btn full-width" onclick="typeCommand('clear')">Clear Screen</button>
+                <button class="control-btn full-width" onclick="typeCommand('tmux ls')">List Sessions</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="terminal-container" class="shifted">
+        <iframe id="terminal-frame" src="/"></iframe>
+    </div>
+    
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="adjustZoom(-0.1)">−</button>
+        <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+        <button class="zoom-btn" onclick="adjustZoom(0.1)">+</button>
+    </div>
+    
+    <script>
+        let currentZoom = 1.0;
+        const iframe = document.getElementById('terminal-frame');
+        let iframeDoc = null;
+        let terminalInput = null;
+        
+        // Wait for iframe to load
+        iframe.onload = function() {
+            try {
+                iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                // Try to find the terminal input
+                setTimeout(() => {
+                    terminalInput = iframeDoc.querySelector('textarea') || 
+                                   iframeDoc.querySelector('input[type="text"]') ||
+                                   iframeDoc.querySelector('.xterm-helper-textarea');
+                    console.log('Terminal input found:', !!terminalInput);
+                }, 1000);
+            } catch (e) {
+                console.log('Cannot access iframe content:', e);
+            }
+        };
+        
+        // Send key using multiple methods
+        function sendKey(key) {
+            if (!iframeDoc) {
+                console.error('Iframe not loaded');
+                return;
+            }
+            
+            // Method 1: Try to type directly into terminal input
+            if (terminalInput) {
+                terminalInput.focus();
+                
+                if (key === 'Enter') {
+                    terminalInput.value += '\n';
+                    terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    terminalInput.dispatchEvent(new KeyboardEvent('keypress', { 
+                        key: 'Enter', 
+                        keyCode: 13, 
+                        bubbles: true 
+                    }));
+                } else if (key === 'Backspace') {
+                    terminalInput.value = terminalInput.value.slice(0, -1);
+                    terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                } else if (key === 'Tab') {
+                    terminalInput.value += '\t';
+                    terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                } else if (key === 'Space' || key === ' ') {
+                    terminalInput.value += ' ';
+                    terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                } else if (key.startsWith('Arrow')) {
+                    // Arrow keys need special handling
+                    const arrowMap = {
+                        'ArrowUp': { keyCode: 38, which: 38 },
+                        'ArrowDown': { keyCode: 40, which: 40 },
+                        'ArrowLeft': { keyCode: 37, which: 37 },
+                        'ArrowRight': { keyCode: 39, which: 39 }
+                    };
+                    const keyInfo = arrowMap[key];
+                    if (keyInfo) {
+                        terminalInput.dispatchEvent(new KeyboardEvent('keydown', {
+                            key: key,
+                            keyCode: keyInfo.keyCode,
+                            which: keyInfo.which,
+                            bubbles: true
+                        }));
+                    }
+                } else {
+                    terminalInput.value += key;
+                    terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+            
+            // Method 2: Dispatch keyboard events to document
+            const keyCode = key.length === 1 ? key.charCodeAt(0) : 0;
+            iframeDoc.dispatchEvent(new KeyboardEvent('keydown', {
+                key: key,
+                keyCode: keyCode,
+                bubbles: true,
+                cancelable: true
+            }));
+            
+            if (key.length === 1) {
+                iframeDoc.dispatchEvent(new KeyboardEvent('keypress', {
+                    key: key,
+                    keyCode: keyCode,
+                    bubbles: true,
+                    cancelable: true
+                }));
+            }
+            
+            iframeDoc.dispatchEvent(new KeyboardEvent('keyup', {
+                key: key,
+                keyCode: keyCode,
+                bubbles: true,
+                cancelable: true
+            }));
+        }
+        
+        function sendCtrlKey(key) {
+            if (!iframeDoc) return;
+            
+            const keyCode = key.toUpperCase().charCodeAt(0);
+            const event = new KeyboardEvent('keydown', {
+                key: key,
+                keyCode: keyCode,
+                ctrlKey: true,
+                bubbles: true,
+                cancelable: true
+            });
+            
+            if (terminalInput) {
+                terminalInput.focus();
+                terminalInput.dispatchEvent(event);
+            }
+            iframeDoc.dispatchEvent(event);
+        }
+        
+        function sendTmuxCmd(cmd) {
+            // Send Ctrl+B
+            sendCtrlKey('b');
+            // Then send command after delay
+            setTimeout(() => {
+                sendKey(cmd);
+            }, 100);
+        }
+        
+        function typeCommand(cmd) {
+            if (!terminalInput) {
+                console.error('Terminal input not found');
+                return;
+            }
+            
+            // Clear current input and type command
+            terminalInput.focus();
+            terminalInput.value = cmd;
+            terminalInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // Send Enter after a short delay
+            setTimeout(() => {
+                sendKey('Enter');
+            }, 100);
+        }
+        
+        // Zoom controls
+        function adjustZoom(delta) {
+            currentZoom += delta;
+            currentZoom = Math.max(0.5, Math.min(2.0, currentZoom));
+            applyZoom();
+        }
+        
+        function resetZoom() {
+            currentZoom = 1.0;
+            applyZoom();
+        }
+        
+        function applyZoom() {
+            if (iframeDoc && iframeDoc.body) {
+                iframeDoc.body.style.transform = `scale(${currentZoom})`;
+                iframeDoc.body.style.transformOrigin = 'top left';
+                iframeDoc.body.style.width = `${100 / currentZoom}%`;
+                iframeDoc.body.style.height = `${100 / currentZoom}%`;
+            }
+        }
+        
+        // Panel toggle
+        const toggleBtn = document.getElementById('toggle-panel');
+        const panel = document.getElementById('control-panel');
+        const container = document.getElementById('terminal-container');
+        
+        toggleBtn.addEventListener('click', () => {
+            panel.classList.toggle('collapsed');
+            container.classList.toggle('shifted');
+            toggleBtn.classList.toggle('shifted');
+            document.body.classList.toggle('panel-open');
+        });
+        
+        // Auto-hide panel on mobile after button click
+        if (window.innerWidth <= 768) {
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        panel.classList.add('collapsed');
+                        container.classList.remove('shifted');
+                        toggleBtn.classList.remove('shifted');
+                        document.body.classList.remove('panel-open');
+                    }, 200);
+                });
+            });
+        }
+        
+        // Prevent zoom on double-tap for buttons
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
