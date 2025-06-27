@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Sessions</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #0af;
+            margin-bottom: 10px;
+        }
+        
+        .info {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .info code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .session-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .session-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .session-card:hover {
+            background: #2a2a2a;
+            border-color: #0af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 170, 255, 0.2);
+        }
+        
+        .session-name {
+            font-size: 15px;
+            font-weight: bold;
+            color: #0af;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .session-path {
+            font-size: 11px;
+            color: #888;
+            font-family: monospace;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .copy-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .copy-btn:hover {
+            background: #3a3a3a;
+            border-color: #555;
+        }
+        
+        .terminal-link {
+            display: inline-block;
+            background: #0a4a8a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            margin: 10px 0;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #0af;
+        }
+        
+        #clipboard-helper {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .feedback {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            display: none;
+            border: 1px solid #0af;
+        }
+        
+        .feedback.show {
+            display: block;
+        }
+        
+        .command-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .command-section h3 {
+            color: #0af;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .command-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        
+        .cmd {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .cmd:hover {
+            background: #3a3a3a;
+            border: 1px solid #0af;
+        }
+    </style>
+</head>
+<body>
+    <h1>Terminal Sessions</h1>
+    
+    <div class="info">
+        <strong>You're already in tmux!</strong> Use these commands:<br>
+        • <code>Ctrl+B, S</code> - Show session list (arrow keys to select)<br>
+        • <code>Ctrl+B, (</code> - Previous session<br>
+        • <code>Ctrl+B, )</code> - Next session<br>
+        • Or copy the switch commands below
+    </div>
+    
+    <div class="command-section">
+        <h3>Quick Switch Commands</h3>
+        <div class="command-list">
+            <div class="cmd" onclick="copyCmd('tmux switch -t Code')">Switch to Code</div>
+            <div class="cmd" onclick="copyCmd('tmux switch -t ClaudePhone')">Switch to ClaudePhone</div>
+            <div class="cmd" onclick="copyCmd('tmux switch -t VPS')">Switch to VPS</div>
+            <div class="cmd" onclick="copyCmd('tmux ls')">List all sessions</div>
+        </div>
+    </div>
+    
+    <a href="/" class="terminal-link">← Back to Terminal</a>
+    
+    <input type="text" class="search-box" placeholder="Search projects..." id="searchBox" autofocus>
+    
+    <div class="session-grid" id="sessionGrid">
+        <div class="session-card" data-name="code (top level)">
+            <div class="session-name" title="Code (Top Level)">Code (Top Level)</div>
+            <div class="session-path" title="~/Code">~/Code</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Code || tmux new -d -s Code -c ~/Code')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code')">cd</button>
+        </div>
+        <div class="session-card" data-name="big claude">
+            <div class="session-name" title="Big Claude">Big Claude</div>
+            <div class="session-path" title="~/Code/Big Claude">~/Code/Big Claude</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Big Claude || tmux new -d -s Big Claude -c ~/Code/Big Claude')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Big Claude')">cd</button>
+        </div>
+        <div class="session-card" data-name="blackmail">
+            <div class="session-name" title="blackmail">blackmail</div>
+            <div class="session-path" title="~/Code/blackmail">~/Code/blackmail</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t blackmail || tmux new -d -s blackmail -c ~/Code/blackmail')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/blackmail')">cd</button>
+        </div>
+        <div class="session-card" data-name="calendar-api">
+            <div class="session-name" title="calendar-API">calendar-API</div>
+            <div class="session-path" title="~/Code/calendar-API">~/Code/calendar-API</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t calendar-API || tmux new -d -s calendar-API -c ~/Code/calendar-API')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/calendar-API')">cd</button>
+        </div>
+        <div class="session-card" data-name="chrome-replacement">
+            <div class="session-name" title="chrome-replacement">chrome-replacement</div>
+            <div class="session-path" title="~/Code/chrome-replacement">~/Code/chrome-replacement</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t chrome-replacement || tmux new -d -s chrome-replacement -c ~/Code/chrome-replacement')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/chrome-replacement')">cd</button>
+        </div>
+        <div class="session-card" data-name="citation-tracker">
+            <div class="session-name" title="citation-tracker">citation-tracker</div>
+            <div class="session-path" title="~/Code/citation-tracker">~/Code/citation-tracker</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t citation-tracker || tmux new -d -s citation-tracker -c ~/Code/citation-tracker')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/citation-tracker')">cd</button>
+        </div>
+        <div class="session-card" data-name="claudephone">
+            <div class="session-name" title="ClaudePhone">ClaudePhone</div>
+            <div class="session-path" title="~/Code/ClaudePhone">~/Code/ClaudePhone</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t ClaudePhone || tmux new -d -s ClaudePhone -c ~/Code/ClaudePhone')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/ClaudePhone')">cd</button>
+        </div>
+        <div class="session-card" data-name="compare-the-llm">
+            <div class="session-name" title="compare-the-llm">compare-the-llm</div>
+            <div class="session-path" title="~/Code/compare-the-llm">~/Code/compare-the-llm</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t compare-the-llm || tmux new -d -s compare-the-llm -c ~/Code/compare-the-llm')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/compare-the-llm')">cd</button>
+        </div>
+        <div class="session-card" data-name="crosscoders_backup">
+            <div class="session-name" title="Crosscoders_backup">Crosscoders_backup</div>
+            <div class="session-path" title="~/Code/Crosscoders_backup">~/Code/Crosscoders_backup</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Crosscoders_backup || tmux new -d -s Crosscoders_backup -c ~/Code/Crosscoders_backup')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Crosscoders_backup')">cd</button>
+        </div>
+        <div class="session-card" data-name="crosscoders">
+            <div class="session-name" title="CrossCoders">CrossCoders</div>
+            <div class="session-path" title="~/Code/CrossCoders">~/Code/CrossCoders</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t CrossCoders || tmux new -d -s CrossCoders -c ~/Code/CrossCoders')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/CrossCoders')">cd</button>
+        </div>
+        <div class="session-card" data-name="deprecated-gemini-ext">
+            <div class="session-name" title="deprecated-gemini-ext">deprecated-gemini-ext</div>
+            <div class="session-path" title="~/Code/deprecated-gemini-ext">~/Code/deprecated-gemini-ext</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t deprecated-gemini-ext || tmux new -d -s deprecated-gemini-ext -c ~/Code/deprecated-gemini-ext')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/deprecated-gemini-ext')">cd</button>
+        </div>
+        <div class="session-card" data-name="eval-awareness">
+            <div class="session-name" title="eval-awareness">eval-awareness</div>
+            <div class="session-path" title="~/Code/eval-awareness">~/Code/eval-awareness</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t eval-awareness || tmux new -d -s eval-awareness -c ~/Code/eval-awareness')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/eval-awareness')">cd</button>
+        </div>
+        <div class="session-card" data-name="gemini-context-app">
+            <div class="session-name" title="gemini-context-app">gemini-context-app</div>
+            <div class="session-path" title="~/Code/gemini-context-app">~/Code/gemini-context-app</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t gemini-context-app || tmux new -d -s gemini-context-app -c ~/Code/gemini-context-app')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/gemini-context-app')">cd</button>
+        </div>
+        <div class="session-card" data-name="icons">
+            <div class="session-name" title="icons">icons</div>
+            <div class="session-path" title="~/Code/icons">~/Code/icons</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t icons || tmux new -d -s icons -c ~/Code/icons')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/icons')">cd</button>
+        </div>
+        <div class="session-card" data-name="llm-utils">
+            <div class="session-name" title="llm-utils">llm-utils</div>
+            <div class="session-path" title="~/Code/llm-utils">~/Code/llm-utils</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t llm-utils || tmux new -d -s llm-utils -c ~/Code/llm-utils')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/llm-utils')">cd</button>
+        </div>
+        <div class="session-card" data-name="llowm-friction">
+            <div class="session-name" title="LLowM-Friction">LLowM-Friction</div>
+            <div class="session-path" title="~/Code/LLowM-Friction">~/Code/LLowM-Friction</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t LLowM-Friction || tmux new -d -s LLowM-Friction -c ~/Code/LLowM-Friction')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/LLowM-Friction')">cd</button>
+        </div>
+        <div class="session-card" data-name="neels-utils">
+            <div class="session-name" title="neels-utils">neels-utils</div>
+            <div class="session-path" title="~/Code/neels-utils">~/Code/neels-utils</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t neels-utils || tmux new -d -s neels-utils -c ~/Code/neels-utils')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/neels-utils')">cd</button>
+        </div>
+        <div class="session-card" data-name="o3-vibes">
+            <div class="session-name" title="o3-vibes">o3-vibes</div>
+            <div class="session-path" title="~/Code/o3-vibes">~/Code/o3-vibes</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t o3-vibes || tmux new -d -s o3-vibes -c ~/Code/o3-vibes')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/o3-vibes')">cd</button>
+        </div>
+        <div class="session-card" data-name="old-blackmail-ignore">
+            <div class="session-name" title="old-blackmail-ignore">old-blackmail-ignore</div>
+            <div class="session-path" title="~/Code/old-blackmail-ignore">~/Code/old-blackmail-ignore</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t old-blackmail-ignore || tmux new -d -s old-blackmail-ignore -c ~/Code/old-blackmail-ignore')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/old-blackmail-ignore')">cd</button>
+        </div>
+        <div class="session-card" data-name="or-docs">
+            <div class="session-name" title="OR-docs">OR-docs</div>
+            <div class="session-path" title="~/Code/OR-docs">~/Code/OR-docs</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t OR-docs || tmux new -d -s OR-docs -c ~/Code/OR-docs')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/OR-docs')">cd</button>
+        </div>
+        <div class="session-card" data-name="paste2mark">
+            <div class="session-name" title="paste2mark">paste2mark</div>
+            <div class="session-path" title="~/Code/paste2mark">~/Code/paste2mark</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t paste2mark || tmux new -d -s paste2mark -c ~/Code/paste2mark')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/paste2mark')">cd</button>
+        </div>
+        <div class="session-card" data-name="pomodoro extension">
+            <div class="session-name" title="Pomodoro Extension">Pomodoro Extension</div>
+            <div class="session-path" title="~/Code/Pomodoro Extension">~/Code/Pomodoro Extension</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Pomodoro Extension || tmux new -d -s Pomodoro Extension -c ~/Code/Pomodoro Extension')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Pomodoro Extension')">cd</button>
+        </div>
+        <div class="session-card" data-name="productivity_guard">
+            <div class="session-name" title="productivity_guard">productivity_guard</div>
+            <div class="session-path" title="~/Code/productivity_guard">~/Code/productivity_guard</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t productivity_guard || tmux new -d -s productivity_guard -c ~/Code/productivity_guard')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/productivity_guard')">cd</button>
+        </div>
+        <div class="session-card" data-name="prompts">
+            <div class="session-name" title="prompts">prompts</div>
+            <div class="session-path" title="~/Code/prompts">~/Code/prompts</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t prompts || tmux new -d -s prompts -c ~/Code/prompts')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/prompts')">cd</button>
+        </div>
+        <div class="session-card" data-name="prosify">
+            <div class="session-name" title="prosify">prosify</div>
+            <div class="session-path" title="~/Code/prosify">~/Code/prosify</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t prosify || tmux new -d -s prosify -c ~/Code/prosify')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/prosify')">cd</button>
+        </div>
+        <div class="session-card" data-name="scratch">
+            <div class="session-name" title="Scratch">Scratch</div>
+            <div class="session-path" title="~/Code/Scratch">~/Code/Scratch</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Scratch || tmux new -d -s Scratch -c ~/Code/Scratch')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Scratch')">cd</button>
+        </div>
+        <div class="session-card" data-name="selenium-utils">
+            <div class="session-name" title="selenium-utils">selenium-utils</div>
+            <div class="session-path" title="~/Code/selenium-utils">~/Code/selenium-utils</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t selenium-utils || tmux new -d -s selenium-utils -c ~/Code/selenium-utils')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/selenium-utils')">cd</button>
+        </div>
+        <div class="session-card" data-name="self_preservation_adler">
+            <div class="session-name" title="self_preservation_adler">self_preservation_adler</div>
+            <div class="session-path" title="~/Code/self_preservation_adler">~/Code/self_preservation_adler</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t self_preservation_adler || tmux new -d -s self_preservation_adler -c ~/Code/self_preservation_adler')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/self_preservation_adler')">cd</button>
+        </div>
+        <div class="session-card" data-name="site2p">
+            <div class="session-name" title="site2p">site2p</div>
+            <div class="session-path" title="~/Code/site2p">~/Code/site2p</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t site2p || tmux new -d -s site2p -c ~/Code/site2p')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/site2p')">cd</button>
+        </div>
+        <div class="session-card" data-name="supergemini">
+            <div class="session-name" title="SuperGemini">SuperGemini</div>
+            <div class="session-path" title="~/Code/SuperGemini">~/Code/SuperGemini</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t SuperGemini || tmux new -d -s SuperGemini -c ~/Code/SuperGemini')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/SuperGemini')">cd</button>
+        </div>
+        <div class="session-card" data-name="tax">
+            <div class="session-name" title="Tax">Tax</div>
+            <div class="session-path" title="~/Code/Tax">~/Code/Tax</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Tax || tmux new -d -s Tax -c ~/Code/Tax')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Tax')">cd</button>
+        </div>
+        <div class="session-card" data-name="temp">
+            <div class="session-name" title="temp">temp</div>
+            <div class="session-path" title="~/Code/temp">~/Code/temp</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t temp || tmux new -d -s temp -c ~/Code/temp')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/temp')">cd</button>
+        </div>
+        <div class="session-card" data-name="test_claudephone_debug">
+            <div class="session-name" title="test_claudephone_debug">test_claudephone_debug</div>
+            <div class="session-path" title="~/Code/test_claudephone_debug">~/Code/test_claudephone_debug</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t test_claudephone_debug || tmux new -d -s test_claudephone_debug -c ~/Code/test_claudephone_debug')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/test_claudephone_debug')">cd</button>
+        </div>
+        <div class="session-card" data-name="test">
+            <div class="session-name" title="test">test</div>
+            <div class="session-path" title="~/Code/test">~/Code/test</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t test || tmux new -d -s test -c ~/Code/test')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/test')">cd</button>
+        </div>
+        <div class="session-card" data-name="tiedembed">
+            <div class="session-name" title="TiedEmbed">TiedEmbed</div>
+            <div class="session-path" title="~/Code/TiedEmbed">~/Code/TiedEmbed</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t TiedEmbed || tmux new -d -s TiedEmbed -c ~/Code/TiedEmbed')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/TiedEmbed')">cd</button>
+        </div>
+        <div class="session-card" data-name="tmux-phone">
+            <div class="session-name" title="tmux-phone">tmux-phone</div>
+            <div class="session-path" title="~/Code/tmux-phone">~/Code/tmux-phone</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t tmux-phone || tmux new -d -s tmux-phone -c ~/Code/tmux-phone')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/tmux-phone')">cd</button>
+        </div>
+        <div class="session-card" data-name="todomini">
+            <div class="session-name" title="todomini">todomini</div>
+            <div class="session-path" title="~/Code/todomini">~/Code/todomini</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t todomini || tmux new -d -s todomini -c ~/Code/todomini')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/todomini')">cd</button>
+        </div>
+        <div class="session-card" data-name="vibe-editor-claude">
+            <div class="session-name" title="vibe-editor-claude">vibe-editor-claude</div>
+            <div class="session-path" title="~/Code/vibe-editor-claude">~/Code/vibe-editor-claude</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t vibe-editor-claude || tmux new -d -s vibe-editor-claude -c ~/Code/vibe-editor-claude')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/vibe-editor-claude')">cd</button>
+        </div>
+        <div class="session-card" data-name="vibe-editor-ts">
+            <div class="session-name" title="vibe-editor-ts">vibe-editor-ts</div>
+            <div class="session-path" title="~/Code/vibe-editor-ts">~/Code/vibe-editor-ts</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t vibe-editor-ts || tmux new -d -s vibe-editor-ts -c ~/Code/vibe-editor-ts')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/vibe-editor-ts')">cd</button>
+        </div>
+        <div class="session-card" data-name="vibe-writer-claude">
+            <div class="session-name" title="Vibe-Writer-Claude">Vibe-Writer-Claude</div>
+            <div class="session-path" title="~/Code/Vibe-Writer-Claude">~/Code/Vibe-Writer-Claude</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Vibe-Writer-Claude || tmux new -d -s Vibe-Writer-Claude -c ~/Code/Vibe-Writer-Claude')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Vibe-Writer-Claude')">cd</button>
+        </div>
+        <div class="session-card" data-name="vibe-writer-typescript">
+            <div class="session-name" title="Vibe-Writer-TypeScript">Vibe-Writer-TypeScript</div>
+            <div class="session-path" title="~/Code/Vibe-Writer-TypeScript">~/Code/Vibe-Writer-TypeScript</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Vibe-Writer-TypeScript || tmux new -d -s Vibe-Writer-TypeScript -c ~/Code/Vibe-Writer-TypeScript')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Vibe-Writer-TypeScript')">cd</button>
+        </div>
+        <div class="session-card" data-name="vibe-writer">
+            <div class="session-name" title="Vibe-Writer">Vibe-Writer</div>
+            <div class="session-path" title="~/Code/Vibe-Writer">~/Code/Vibe-Writer</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Vibe-Writer || tmux new -d -s Vibe-Writer -c ~/Code/Vibe-Writer')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Vibe-Writer')">cd</button>
+        </div>
+        <div class="session-card" data-name="voice2chrome">
+            <div class="session-name" title="Voice2Chrome">Voice2Chrome</div>
+            <div class="session-path" title="~/Code/Voice2Chrome">~/Code/Voice2Chrome</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Voice2Chrome || tmux new -d -s Voice2Chrome -c ~/Code/Voice2Chrome')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Voice2Chrome')">cd</button>
+        </div>
+        <div class="session-card" data-name="vps">
+            <div class="session-name" title="VPS">VPS</div>
+            <div class="session-path" title="~/Code/VPS">~/Code/VPS</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t VPS || tmux new -d -s VPS -c ~/Code/VPS')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/VPS')">cd</button>
+        </div>
+        <div class="session-card" data-name="watch-timer">
+            <div class="session-name" title="watch-timer">watch-timer</div>
+            <div class="session-path" title="~/Code/watch-timer">~/Code/watch-timer</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t watch-timer || tmux new -d -s watch-timer -c ~/Code/watch-timer')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/watch-timer')">cd</button>
+        </div>
+        <div class="session-card" data-name="writing">
+            <div class="session-name" title="Writing">Writing</div>
+            <div class="session-path" title="~/Code/Writing">~/Code/Writing</div>
+            <button class="copy-btn" onclick="copyCmd('tmux switch -t Writing || tmux new -d -s Writing -c ~/Code/Writing')">Switch</button>
+            <button class="copy-btn" onclick="copyCmd('cd ~/Code/Writing')">cd</button>
+        </div>
+    </div>
+    
+    <textarea id="clipboard-helper"></textarea>
+    <div id="feedback" class="feedback"></div>
+    
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const sessionCards = document.querySelectorAll('.session-card');
+        
+        searchBox.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            sessionCards.forEach(card => {
+                const name = card.dataset.name;
+                if (name.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+        
+        // Click card to copy switch command
+        sessionCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.classList.contains('copy-btn')) return;
+                const switchBtn = card.querySelector('.copy-btn');
+                switchBtn.click();
+            });
+        });
+        
+        // Copy command function
+        function copyCmd(text) {
+            const btn = event.target || event.currentTarget;
+            const textarea = document.getElementById('clipboard-helper');
+            
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '0';
+            textarea.style.top = '0';
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showFeedback('✓ Copied! Paste with Cmd+V');
+                
+                // Visual feedback
+                if (btn.classList.contains('copy-btn')) {
+                    const originalText = btn.textContent;
+                    btn.textContent = '✓';
+                    btn.style.background = '#2a5a2a';
+                    
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '';
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Copy failed:', err);
+                showFeedback('Copy failed - select manually');
+            }
+            
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+        }
+        
+        // Show feedback
+        function showFeedback(message) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = message;
+            feedback.classList.add('show');
+            
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

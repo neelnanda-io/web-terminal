@@ -1,15 +1,47 @@
-# Web Terminal Access Guide
+# Web Terminal Access System
+
+> ⚠️ **SECURITY WARNING**: This system provides remote command execution access. Read [SECURITY.md](SECURITY.md) before deploying.
 
 > 📖 **For complete documentation, see [README-COMPREHENSIVE.md](README-COMPREHENSIVE.md)**
 
-## 🌐 Access Your Terminal from Anywhere!
+## Overview
 
-You can now access a terminal on your laptop from any device with a web browser by visiting:
+This project creates a web-accessible terminal interface to your local machine through a VPS proxy. It allows you to access your development environment from any device with a web browser.
 
-**URL: http://143.110.172.229/**
+## Quick Start
 
-- **Username**: admin
-- **Password**: feet essential wherever principle
+### Prerequisites
+
+- macOS laptop (local machine)
+- Linux VPS with public IP
+- SSH key-based access to VPS
+- Homebrew installed
+
+### Installation
+
+1. **Clone and configure:**
+   ```bash
+   git clone <repository-url>
+   cd web-terminal
+   cp credentials.example.sh credentials.sh
+   # Edit credentials.sh with your settings
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   brew install ttyd tmux
+   ```
+
+3. **Run tests:**
+   ```bash
+   python3 tests/test_setup.py
+   ./tests/test_connection.sh
+   ```
+
+4. **Start services:**
+   ```bash
+   ./start-ttyd.sh
+   ```
 
 ## What This Does
 
@@ -72,11 +104,12 @@ ssh vps "systemctl restart nginx"
 
 ## Security Considerations
 
-**Current Setup** (optimized for convenience):
-- Basic HTTP authentication (username/password)
-- Password transmitted in base64 encoding (not encrypted)
-- No HTTPS encryption
-- Terminal access includes full system access
+⚠️ **IMPORTANT**: This setup prioritizes convenience for personal use. See [SECURITY.md](SECURITY.md) for detailed security analysis and recommendations.
+
+**Current Setup**:
+- Basic HTTP authentication
+- Full command execution access
+- Suitable for personal use only
 
 **Optional Security Improvements**:
 

@@ -6,10 +6,19 @@
 # Set PATH for launchd environment
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
+# Load credentials from external file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/credentials.sh" ]; then
+    source "$SCRIPT_DIR/credentials.sh"
+else
+    echo "ERROR: credentials.sh not found! Copy credentials.example.sh to credentials.sh and update it."
+    exit 1
+fi
+
 # Configuration
 TMUX_SESSION="web-terminal"
-TTYD_PORT=7681
-TTYD_CREDENTIAL="admin:feet essential wherever principle"
+TTYD_PORT="${TTYD_PORT:-7681}"
+TTYD_CREDENTIAL="${TTYD_USERNAME}:${TTYD_PASSWORD}"
 
 # Ensure tmux session exists
 if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then

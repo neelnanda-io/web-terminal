@@ -1,0 +1,64 @@
+# Security - NEVER commit these
+credentials.sh
+.env
+*.key
+*.pem
+*.cert
+*_rsa
+*_rsa.pub
+authorized_keys
+known_hosts
+.ssh/
+
+# Logs and runtime files
+*.log
+*.pid
+nohup.out
+.tmux/
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Archives
+*.tar.gz
+*.zip
+
+# Local configuration overrides
+config.local.sh
+*-local.sh
+
+# Test outputs
+test-results/
+coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Node.js (if used in future)
+node_modules/
+npm-debug.log*
+
+# Session data
+sessions/
+.session-*
+
+# Any files with passwords or sensitive data
+*password*
+*secret*
+*credential*
+!credentials.example.sh
