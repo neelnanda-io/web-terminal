@@ -1,3 +1,5 @@
+**Warning:** This codebase was entirely written by Claude Code, use at your own risk
+
 # Web Terminal Access System
 
 A secure web-based terminal interface that allows remote access to your Mac's terminal through a VPS proxy. Access your development environment from any device with a web browser.
