@@ -1,285 +1,207 @@
 # Web Terminal Access System
 
-> ⚠️ **SECURITY WARNING**: This system provides remote command execution access. Read [SECURITY.md](SECURITY.md) before deploying.
+A secure web-based terminal interface that allows remote access to your Mac's terminal through a VPS proxy. Access your development environment from any device with a web browser.
 
-> 📖 **For complete documentation, see [README-COMPREHENSIVE.md](README-COMPREHENSIVE.md)**
+## Features
 
-## Overview
-
-This project creates a web-accessible terminal interface to your local machine through a VPS proxy. It allows you to access your development environment from any device with a web browser.
+- 🌐 **Web-based terminal access** - Access your Mac terminal from any browser
+- 📱 **Mobile-friendly interface** - Optimized controls for touch devices  
+- 🔒 **Secure authentication** - HTTP Basic Auth with configurable credentials
+- 🖥️ **Persistent sessions** - tmux integration for session management
+- 🚇 **Reverse SSH tunnel** - Secure connection through VPS proxy
+- 🔧 **SSH fallback** - Alternative SSH access when web terminal has issues
 
 ## Quick Start
 
 ### Prerequisites
 
 - macOS laptop (local machine)
-- Linux VPS with public IP
+- Linux VPS with public IP (Ubuntu/Debian)
 - SSH key-based access to VPS
-- Homebrew installed
+- Homebrew installed on Mac
 
 ### Installation
 
-1. **Clone and configure:**
+1. **Clone the repository:**
    ```bash
    git clone <repository-url>
    cd web-terminal
+   ```
+
+2. **Configure credentials:**
+   ```bash
    cp credentials.example.sh credentials.sh
-   # Edit credentials.sh with your settings
+   # Edit credentials.sh with your VPS details
    ```
 
-2. **Install dependencies:**
+3. **Run the setup:**
    ```bash
-   brew install ttyd tmux
+   ./fix-web-terminal.sh
    ```
 
-3. **Run tests:**
-   ```bash
-   python3 tests/test_setup.py
-   ./tests/test_connection.sh
-   ```
+4. **Access your terminal:**
+   - URL: `http://YOUR_VPS_IP/`
+   - Username: `admin`
+   - Password: `webterm123` (configurable)
 
-4. **Start services:**
-   ```bash
-   ./start-ttyd.sh
-   ```
+## Architecture
 
-## What This Does
-
-This setup provides a web-based interface to a tmux session running on your laptop. You can:
-- Run commands on your laptop from your phone, tablet, or another computer
-- Access your development environment from anywhere
-- Maintain persistent sessions that survive disconnections
-- Share terminal access with others (if you give them the password)
-
-## How It Works
-
-1. **ttyd** runs on your laptop, serving a tmux session over HTTP on port 7681
-2. The **reverse SSH tunnel** forwards port 7681 from your laptop to the VPS
-3. **nginx** on the VPS proxies web requests to the tunneled ttyd port
-4. **Basic authentication** protects access with a username/password
-
-## Managing the Service
-
-### On Your Laptop
-
-```bash
-# Check if ttyd is running
-ps aux | grep ttyd
-
-# View ttyd logs
-tail -f ~/Library/Logs/ttyd.out
-tail -f ~/Library/Logs/ttyd.err
-
-# Restart ttyd service
-launchctl unload ~/Library/LaunchAgents/com.user.ttyd.plist
-launchctl load ~/Library/LaunchAgents/com.user.ttyd.plist
-
-# Manually start ttyd (for testing)
-cd /Users/neelnanda/Code/VPS/web-terminal
-./start-ttyd.sh
+```
+┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+│   Browser   │──────▶│     VPS     │──────▶│   Mac       │
+│             │ HTTPS │   (nginx)   │ SSH   │   (ttyd)    │
+└─────────────┘       └─────────────┘ Tunnel└─────────────┘
 ```
 
-### Tmux Commands (in the web terminal)
+1. **ttyd** runs on your Mac, serving tmux sessions over HTTP
+2. **autossh** creates a persistent reverse tunnel to the VPS
+3. **nginx** on the VPS proxies requests to the tunneled port
+4. **Basic Auth** protects access with username/password
 
-- **Create new window**: Ctrl+B, then C
-- **Switch windows**: Ctrl+B, then 0-9
-- **Split pane horizontally**: Ctrl+B, then %
-- **Split pane vertically**: Ctrl+B, then "
-- **Switch panes**: Ctrl+B, then arrow keys
-- **Detach session**: Ctrl+B, then D
+## Mobile Access
 
-### On the VPS
+### Web Interface
+The web terminal includes a mobile-optimized control panel:
+- Tap **☰** to open the control panel
+- Use on-screen buttons for arrow keys, Ctrl commands, etc.
+- Access specific tmux windows via URL (e.g., `/Code`)
 
+### SSH Access (Recommended for Mobile)
+For better mobile experience, use SSH clients:
+
+#### Termius (Android/iOS)
+See [TERMIUS-SETUP.md](TERMIUS-SETUP.md) for detailed setup
+
+#### Quick SSH Access
 ```bash
-# Check nginx status
-ssh vps "systemctl status nginx"
+# Direct terminal access
+ssh -t root@YOUR_VPS_IP laptop
 
-# View nginx logs
-ssh vps "tail -f /var/log/nginx/access.log"
-ssh vps "tail -f /var/log/nginx/error.log"
-
-# Restart nginx
-ssh vps "systemctl restart nginx"
+# Access specific tmux session
+ssh -t root@YOUR_VPS_IP laptop-tmux Code
 ```
 
-## Security Considerations
+## File Structure
 
-⚠️ **IMPORTANT**: This setup prioritizes convenience for personal use. See [SECURITY.md](SECURITY.md) for detailed security analysis and recommendations.
+```
+web-terminal/
+├── README.md                  # This file
+├── credentials.sh             # VPS configuration (git-ignored)
+├── fix-web-terminal.sh        # Main setup/restart script
+├── start-web-terminal.sh      # Comprehensive startup script
+├── start-ttyd.sh             # Simple ttyd starter
+├── index.html                # Enhanced mobile interface
+├── mobile-complete.html      # Full mobile interface
+├── sessions.html             # Session list page
+├── generate-sessions-v2.sh   # Session list generator
+├── TERMIUS-SETUP.md         # Termius app setup guide
+├── SETUP-INSTRUCTIONS.md    # SSH setup instructions
+└── archive/                 # Old/test files
 
-**Current Setup**:
-- Basic HTTP authentication
-- Full command execution access
-- Suitable for personal use only
-
-**Optional Security Improvements**:
-
-1. **Enable HTTPS with Let's Encrypt**
-   ```bash
-   ssh vps
-   apt install certbot python3-certbot-nginx
-   certbot --nginx -d your-domain.com
-   ```
-   - Pro: Encrypted connection
-   - Con: Requires domain name
-
-2. **Restrict IP Access**
-   - Add IP whitelist to nginx config
-   - Pro: Only specific IPs can connect
-   - Con: Can't access from random locations
-
-3. **Use SSH Instead**
-   - Direct SSH is more secure than web terminal
-   - Pro: Built-in encryption and authentication
-   - Con: Requires SSH client on all devices
-
-## Important: Sleep Issues
-
-⚠️ **Your Mac going to sleep will break the web terminal!**
-
-### Quick Fixes:
-
-1. **Prevent sleep temporarily** (run in any terminal):
-   ```bash
-   caffeinate -d
-   # Leave running while you need access
-   ```
-
-2. **Prevent sleep when plugged in**:
-   - System Settings → Battery → Power Adapter
-   - Turn on "Prevent automatic sleeping when the display is off"
-
-3. **If terminal stops working after sleep**:
-   ```bash
-   # Restart services
-   launchctl kickstart -k gui/$(id -u)/com.user.reversetunnel
-   launchctl kickstart -k gui/$(id -u)/com.user.ttyd
-   ```
-
-See `SLEEP-FIX.md` for more solutions, including running terminal directly on VPS (most reliable).
+On VPS:
+├── /etc/nginx/sites-available/web-terminal  # Nginx config
+├── /var/www/terminal/                       # Web files
+└── /usr/local/bin/laptop*                   # Helper scripts
+```
 
 ## Troubleshooting
 
-**Can't access the terminal?**
+### Web Terminal Not Loading
 
-1. Check if ttyd is running on laptop:
+1. **Check ttyd is running:**
    ```bash
    ps aux | grep ttyd
    ```
 
-2. Check if tunnel is active:
+2. **Check SSH tunnel:**
    ```bash
-   ssh vps "ss -tlnp | grep 7681"
+   ps aux | grep autossh
    ```
 
-3. Test locally first:
+3. **Test locally:**
    ```bash
-   curl -u admin:"feet essential wherever principle" http://localhost:7681
+   curl -u admin:webterm123 http://localhost:7681/
    ```
 
-4. Check nginx on VPS:
+4. **Check VPS nginx:**
    ```bash
-   ssh vps "curl -u admin:'feet essential wherever principle' http://localhost:7681"
+   ssh vps 'systemctl status nginx'
    ```
 
-**Terminal not responding?**
-- The tmux session might be stuck
-- SSH to laptop and run: `tmux kill-session -t web-terminal`
-- The service will create a new session automatically
+### Authentication Issues
 
-**Connection drops frequently?**
-- This is normal for long idle periods
-- Just refresh the browser to reconnect
-- Your tmux session persists even when disconnected
+- Clear browser cache/cookies
+- Try incognito mode
+- Use the URL format: `http://admin:webterm123@VPS_IP/`
 
-## Files and Locations
+### Connection Drops
 
-**On Laptop:**
-- Start script: `/Users/neelnanda/Code/VPS/web-terminal/start-ttyd.sh`
-- Service file: `~/Library/LaunchAgents/com.user.ttyd.plist`
-- Logs: `~/Library/Logs/ttyd.{out,err}`
+- Normal for idle connections - just refresh
+- Your tmux session persists
+- Consider using SSH for long sessions
 
-**On VPS:**
-- Nginx config: `/etc/nginx/sites-available/web-terminal`
-- Password file: `/etc/nginx/.htpasswd`
-- Nginx logs: `/var/log/nginx/`
+### Mac Sleep Issues
 
-## Advanced Usage
+Your Mac going to sleep breaks the connection. Solutions:
 
-### Running Multiple Services
+1. **Temporary:** Run `caffeinate -d` in a terminal
+2. **Permanent:** System Settings → Battery → Prevent sleep when plugged in
+3. **Best:** Use SSH access instead of web terminal
 
-You can run other web services on ports 7500-7502 and access them through the VPS:
-- http://143.110.172.229:7500
-- http://143.110.172.229:7501
-- http://143.110.172.229:7502
+## Security Notes
 
-### Customizing ttyd
+This setup prioritizes convenience for personal use. For production use:
 
-Edit `/Users/neelnanda/Code/VPS/web-terminal/start-ttyd.sh` to:
-- Change the terminal title
-- Modify authentication credentials
-- Adjust terminal settings
+1. **Enable HTTPS** with Let's Encrypt
+2. **Use SSH keys** instead of passwords
+3. **Restrict IP access** in nginx
+4. **Run on non-standard ports**
+5. **Use fail2ban** for brute force protection (already configured)
 
-### Mobile Access Tips
+See [SECURITY.md](SECURITY.md) for detailed security analysis.
 
-- The terminal works well on mobile browsers
-- Use a Bluetooth keyboard for better typing
-- Pinch to zoom for better visibility
-- Consider using a terminal app instead for better experience
+## Managing Services
 
-## Enhanced Mobile Interface (NEW!)
+### Restart Everything
+```bash
+./fix-web-terminal.sh
+```
 
-The web terminal now includes a mobile-optimized control panel for easier use on touch devices.
+### Check Status
+```bash
+# On Mac
+ps aux | grep -E "ttyd|autossh"
 
-### Control Panel Features
+# On VPS
+ssh vps 'systemctl status nginx'
+```
 
-**Access Methods:**
-- Tap the **☰** button in the top-left corner
-- Swipe right from the left edge (mobile only)
-- Panel auto-hides after button press on mobile
+### View Logs
+```bash
+# ttyd logs
+tail -f ~/Library/Logs/web-terminal/ttyd_*.log
 
-### Available Controls
+# Startup logs
+tail -f ~/Library/Logs/web-terminal/startup_*.log
+```
 
-**Navigation Buttons:**
-- **↑ ↓ ← →** - Arrow keys for cursor movement
-- **Home/End** - Jump to line start/end
-- **Tab** - Tab completion
-- **Esc** - Escape key
-- **Enter** - Enter/Return
-- **⌫ Back** - Backspace
+## Advanced Configuration
 
-**Control Keys:**
-- **Ctrl+C** - Interrupt/cancel current process
-- **Ctrl+D** - Exit/logout
-- **Ctrl+Z** - Suspend current process
-- **Ctrl+L** - Clear screen
+### Change Password
+Edit `start-ttyd.sh` and modify the password, then restart:
+```bash
+launchctl unload ~/Library/LaunchAgents/com.user.ttyd.plist
+launchctl load ~/Library/LaunchAgents/com.user.ttyd.plist
+```
 
-**Tmux Controls:**
-- **Next Win** - Next tmux window (Ctrl+B, N)
-- **Prev Win** - Previous window (Ctrl+B, P)  
-- **New Win** - Create new window (Ctrl+B, C)
-- **Detach** - Detach session (Ctrl+B, D)
-- **Scroll Mode** - Enter scroll mode (Ctrl+B, [)
-- **Kill Pane** - Close pane (Ctrl+B, X)
+### Multiple Services
+The tunnel also forwards ports 7500-7502 for additional services.
 
-**Quick Commands:**
-- **List Files** - Runs `ls -la`
-- **Current Dir** - Runs `pwd`
-- **Clear** - Clears terminal
-- **List Sessions** - Shows tmux sessions
+### Custom Domain
+1. Point your domain to the VPS
+2. Update nginx server_name
+3. Install SSL with certbot
 
-### Cross-Platform Keyboard Fixes
+## License
 
-**macOS Command Key Support:**
-- **Cmd+←** - Jump to line start (Home)
-- **Cmd+→** - Jump to line end (End)
-- **Cmd+Backspace** - Delete to line start
-- **Cmd+C/V** - Copy/Paste support
-
-### URL-Based Window Navigation
-
-Access specific tmux windows directly via URL:
-- `http://143.110.172.229/Code` - Opens Code window
-- `http://143.110.172.229/Projects` - Opens Projects window
-- `http://143.110.172.229/Documents` - Opens Documents window
-
-This allows opening multiple browser tabs for different tmux windows.
+This project is for personal use. See LICENSE file for details.

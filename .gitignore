@@ -62,3 +62,17 @@ sessions/
 *secret*
 *credential*
 !credentials.example.sh
+
+# Archive directory
+archive/
+
+# WiFi diagnostic logs
+wifi-diagnostic-*.log
+
+# Terminal debug logs
+ttyd-debug.log
+terminal-deploy.tar.gz
+
+# Test report files
+functionality_test_report.json
+security_assessment.json
